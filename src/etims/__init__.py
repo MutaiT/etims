@@ -63,7 +63,7 @@ from .sales import ReceiptDetails, Sale, SaleLine, SaleReceipt
 from .stock import StockIO, StockIOLine, StockMaster, StockMovement, StockMovementLine
 from .tax import LineAmounts, compute_line, gross_price, tax_included
 
-__version__ = "0.1.0"
+__version__ = "0.1.0a1"
 
 # Libraries log but leave output to the application.
 logging.getLogger("etims").addHandler(logging.NullHandler())

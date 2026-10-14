@@ -1,5 +1,10 @@
 # etims
 
+[![CI](https://github.com/MutaiT/etims/actions/workflows/ci.yml/badge.svg)](https://github.com/MutaiT/etims/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/etims)](https://pypi.org/project/etims/)
+[![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](https://pypi.org/project/etims/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 An open-source Python client for **KRA eTIMS**, the Kenya Revenue Authority's
 electronic tax invoice system. It talks to KRA's **OSCU** (Online Sales Control
 Unit) API directly: no middleware account, no Java library.
@@ -25,7 +30,8 @@ Unit) API directly: no middleware account, no Java library.
 pip install etims
 ```
 
-Not on PyPI yet. Until then, install from a checkout with `pip install .`.
+Current release is an alpha (`0.1.0a1`). To track the latest code instead:
+`pip install git+https://github.com/MutaiT/etims`.
 
 ## Quick start
 

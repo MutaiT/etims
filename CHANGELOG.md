@@ -1,8 +1,9 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+## 0.1.0a1 (2026-10-15)
 
-First version.
+First alpha. Built against KRA's OSCU specification v2.0; signing against the
+live sandbox is not verified yet.
 
 - `OscuClient` for every OSCU endpoint the specification defines: device
   initialization, code lists, item classifications, taxpayer lookup, branches,
