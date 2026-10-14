@@ -56,16 +56,18 @@ from etims import Item, ProductType, TaxType, make_item_code
 
 client = OscuClient("P051234567A", "00", cmc_key)  # sandbox by default
 
-client.save_item(Item(
-    item_code=make_item_code(ProductType.SERVICE, "NT", "U", 1),  # "KE3NTU0000001"
-    item_class_code="8111180000",  # from client.get_item_classes()
-    product_type=ProductType.SERVICE,
-    name="Systems integration (hour)",
-    packaging_unit="NT",
-    quantity_unit="U",
-    tax_type=TaxType.STANDARD,  # B, 16%
-    default_price=Decimal("5800.00"),
-))
+client.save_item(
+    Item(
+        item_code=make_item_code(ProductType.SERVICE, "NT", "U", 1),  # "KE3NTU0000001"
+        item_class_code="8111180000",  # from client.get_item_classes()
+        product_type=ProductType.SERVICE,
+        name="Systems integration (hour)",
+        packaging_unit="NT",
+        quantity_unit="U",
+        tax_type=TaxType.STANDARD,  # B, 16%
+        default_price=Decimal("5800.00"),
+    )
+)
 ```
 
 ### 3. Sign an invoice
@@ -74,24 +76,28 @@ client.save_item(Item(
 from datetime import datetime
 from etims import EAT, PaymentType, Sale, SaleLine
 
-receipt = client.save_sale(Sale(
-    invoice_no=1,                     # KRA's sequence for this branch: 1, 2, 3...
-    trader_invoice_no="INV/2026/0042",
-    confirmed_at=datetime.now(EAT),
-    customer_pin="A123456789Z",       # optional
-    payment_type=PaymentType.MOBILE_MONEY,
-    lines=[SaleLine(
-        item_code="KE3NTU0000001",
-        item_class_code="8111180000",
-        name="Systems integration (hour)",
-        quantity=3,
-        unit_price=Decimal("5800.00"),  # VAT included
-        tax_type=TaxType.STANDARD,
-    )],
-))
+receipt = client.save_sale(
+    Sale(
+        invoice_no=1,  # KRA's sequence for this branch: 1, 2, 3...
+        trader_invoice_no="INV/2026/0042",
+        confirmed_at=datetime.now(EAT),
+        customer_pin="A123456789Z",  # optional
+        payment_type=PaymentType.MOBILE_MONEY,
+        lines=[
+            SaleLine(
+                item_code="KE3NTU0000001",
+                item_class_code="8111180000",
+                name="Systems integration (hour)",
+                quantity=3,
+                unit_price=Decimal("5800.00"),  # VAT included
+                tax_type=TaxType.STANDARD,
+            )
+        ],
+    )
+)
 
-receipt.signature   # print these on the invoice
-receipt.qr_url      # encode this in the invoice's QR code
+receipt.signature  # print these on the invoice
+receipt.qr_url  # encode this in the invoice's QR code
 ```
 
 ### 4. Credit notes
@@ -102,15 +108,17 @@ its own invoice number that points at the original:
 ```python
 from etims import CreditNoteReason, ReceiptType
 
-client.save_sale(Sale(
-    invoice_no=2,
-    original_invoice_no=1,
-    receipt_type=ReceiptType.CREDIT_NOTE,
-    credit_note_reason=CreditNoteReason.REFUND,
-    trader_invoice_no="CN/2026/0007",
-    confirmed_at=datetime.now(EAT),
-    lines=[...],
-))
+client.save_sale(
+    Sale(
+        invoice_no=2,
+        original_invoice_no=1,
+        receipt_type=ReceiptType.CREDIT_NOTE,
+        credit_note_reason=CreditNoteReason.REFUND,
+        trader_invoice_no="CN/2026/0007",
+        confirmed_at=datetime.now(EAT),
+        lines=[...],
+    )
+)
 ```
 
 ## Sending reliably: the outbox
@@ -123,10 +131,10 @@ unreachable, and a sale whose answer was lost must not be signed twice.
 from etims import SaleOutbox
 
 with SaleOutbox("etims.sqlite3", client) as outbox:
-    invoice_no = outbox.enqueue(sale)   # leave sale.invoice_no unset; the outbox numbers it
-    report = outbox.flush()             # e.g. from a job that runs every minute
+    invoice_no = outbox.enqueue(sale)  # leave sale.invoice_no unset; the outbox numbers it
+    report = outbox.flush()  # e.g. from a job that runs every minute
 
-report.sent            # [41, 42]
+report.sent  # [41, 42]
 report.stopped_reason  # None, or why it paused (KRA down, invoice rejected...)
 ```
 
@@ -190,7 +198,7 @@ Lookups return what changed after a date. Each result carries KRA's server
 time, `as_of`; store it and pass it as `since` next time:
 
 ```python
-classes = client.get_item_classes()           # everything
+classes = client.get_item_classes()  # everything
 later = client.get_item_classes(since=classes.as_of)  # only changes
 ```
 
