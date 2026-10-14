@@ -14,3 +14,5 @@ live sandbox is not verified yet.
 - Typed exceptions for every KRA result code, including 905 seen on the live sandbox.
 - Retry policy that never re-sends a save that may have reached KRA.
 - `SaleOutbox`: gap-free invoice numbering and in-order delivery through outages.
+- `etims.testing.FakeKra`: a local stand-in for the OSCU API with fault injection,
+  usable in tests or as a server (`python -m etims.testing`).

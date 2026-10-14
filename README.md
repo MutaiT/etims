@@ -146,6 +146,31 @@ report.stopped_reason  # None, or why it paused (KRA down, invoice rejected...)
 - A rejected sale stops the queue until you fix it with `requeue()`, which keeps
   its invoice number.
 
+## Testing without KRA
+
+`etims.testing.FakeKra` is a local stand-in for the OSCU API. It initializes
+devices, registers items and signs sales, and it is stricter than the
+specification where that catches mistakes early: invoice numbering, item
+registration and totals. Use it in tests:
+
+```python
+from etims.testing import FakeKra
+
+with FakeKra() as kra:
+    device = OscuClient.initialize_device("P051234567A", "00", "any-serial", base_url=kra.url)
+    client = OscuClient("P051234567A", "00", device.cmc_key, base_url=kra.url)
+    kra.fail_next("/saveTrnsSalesOsdc", drop=True)  # simulate a dropped connection
+```
+
+or run it as a server for demos and ERP integrations:
+
+```bash
+python -m etims.testing --port 8088 --state-file kra.json
+```
+
+Passing against the fake doesn't prove KRA accepts a request; it's for
+development and CI.
+
 ## Errors and retries
 
 Every error derives from `etims.EtimsError`, and every KRA result code maps to a
@@ -247,7 +272,8 @@ does about them:
 ## What's verified
 
 - **Against the specification:** every endpoint, field name, length limit and
-  code list (159 tests, run on Python 3.10 to 3.14).
+  code list, plus end-to-end runs over HTTP against the bundled fake KRA
+  (176 tests, run on Python 3.10 to 3.14).
 - **Against the live sandbox:** device initialization and its error handling.
   Signing invoices live is pending an approved OSCU device; run
   `uv run pytest -m live` and `examples/first_invoice.py` to check your own setup.
