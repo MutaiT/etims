@@ -27,10 +27,10 @@ Unit) API directly: no middleware account, no Java library.
 ## Install
 
 ```bash
-pip install etims
+pip install --pre etims
 ```
 
-Current release is an alpha (`0.1.0a1`). To track the latest code instead:
+Current release is an alpha (`0.1.0a1`), so pip needs `--pre` to pick it up. To track the latest code instead:
 `pip install git+https://github.com/MutaiT/etims`.
 
 ## Quick start
