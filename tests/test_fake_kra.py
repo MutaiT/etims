@@ -266,3 +266,15 @@ def test_a_lost_answer_leaves_the_sale_recorded(kra: FakeKra, client: OscuClient
     assert sorted(kra.sales(TIN, "00")) == [1]  # KRA has it
     with pytest.raises(DuplicateError):
         client.save_sale(make_sale())  # and says so when it is sent again
+
+
+def test_internal_errors_answer_with_http_500(tmp_path: Path) -> None:
+    unwritable = tmp_path / "missing-dir" / "kra.json"  # saving state will fail
+    with FakeKra(state_file=unwritable) as kra:
+        reply = requests.post(
+            f"{kra.url}/selectInitOsdcInfo",
+            json={"tin": TIN, "bhfId": "00", "dvcSrlNo": "serial-1"},
+            timeout=5,
+        )
+    assert reply.status_code == 500
+    assert "Fake KRA failed" in reply.json()["error"]

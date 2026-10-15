@@ -30,6 +30,7 @@ import secrets
 import string
 import threading
 import time
+import traceback
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
@@ -363,10 +364,14 @@ class FakeKra:
                     body = json.loads(raw or b"{}")
                 except ValueError:
                     body = None
-                if fault and fault.result_code:
-                    status, answer = 200, _envelope(fault.result_code, fault.message)
-                else:
-                    status, answer = fake._dispatch(self.path, self.headers, body)
+                try:
+                    if fault and fault.result_code:
+                        status, answer = 200, _envelope(fault.result_code, fault.message)
+                    else:
+                        status, answer = fake._dispatch(self.path, self.headers, body)
+                except Exception as exc:  # a bug or a full disk: report it, don't hang up
+                    traceback.print_exc()
+                    status, answer = 500, {"error": f"Fake KRA failed: {exc!r}"}
                 if fault and fault.lose_answer:
                     self.close_connection = True
                     return
