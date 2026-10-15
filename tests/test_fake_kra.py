@@ -26,6 +26,7 @@ from etims import (
     RetryPolicy,
     SaleOutbox,
     TaxType,
+    TransportError,
     tax_rates_from_codes,
 )
 from etims.testing import FakeKra
@@ -196,18 +197,17 @@ def test_outbox_rides_out_outages(tmp_path: Path, kra: FakeKra, client: OscuClie
 
 
 def test_outbox_detects_a_sale_whose_answer_was_lost(tmp_path: Path, kra: FakeKra) -> None:
-    with connect(kra, timeout=(2.0, 0.3)) as client:
+    with connect(kra) as client:
         client.save_item(ITEM)
         with SaleOutbox(tmp_path / "outbox.sqlite3", client) as outbox:
             outbox.enqueue(make_sale(invoice_no=None))
             outbox.enqueue(make_sale(invoice_no=None))
 
-            # KRA records invoice 1, but only after the client stopped waiting.
-            kra.fail_next("/saveTrnsSalesOsdc", delay=0.8)
+            kra.fail_next(
+                "/saveTrnsSalesOsdc", lose_answer=True
+            )  # KRA records invoice 1, says nothing
             assert outbox.flush().uncertain == [1]
-            deadline = time.monotonic() + 5
-            while 1 not in kra.sales(TIN, "00") and time.monotonic() < deadline:
-                time.sleep(0.05)
+            assert sorted(kra.sales(TIN, "00")) == [1]
 
             report = outbox.flush()
             assert report.duplicates == [1]  # the resend proved KRA already had it
@@ -247,3 +247,23 @@ def test_reset_forgets_sales_but_keeps_devices(kra: FakeKra, client: OscuClient)
     kra.reset(keep_devices=False)
     with pytest.raises(DeviceError, match="901"):
         client.get_branches()
+
+
+def test_injected_error_codes_record_nothing(kra: FakeKra, client: OscuClient) -> None:
+    client.save_item(ITEM)
+    kra.fail_next("/saveTrnsSalesOsdc", result_code="910")
+    with pytest.raises(RequestError):
+        client.save_sale(make_sale())
+    assert kra.sales(TIN, "00") == {}
+    assert client.save_sale(make_sale()).receipt_no == 1  # same invoice number is still free
+
+
+def test_a_lost_answer_leaves_the_sale_recorded(kra: FakeKra, client: OscuClient) -> None:
+    client.save_item(ITEM)
+    kra.fail_next("/saveTrnsSalesOsdc", lose_answer=True)
+    with pytest.raises(TransportError) as info:
+        client.save_sale(make_sale())
+    assert info.value.may_have_been_processed
+    assert sorted(kra.sales(TIN, "00")) == [1]  # KRA has it
+    with pytest.raises(DuplicateError):
+        client.save_sale(make_sale())  # and says so when it is sent again

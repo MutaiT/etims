@@ -193,6 +193,7 @@ class _Fault:
     message: str | None = None
     http_status: int | None = None
     drop: bool = False
+    lose_answer: bool = False
     delay: float = 0.0
 
 
@@ -279,17 +280,22 @@ class FakeKra:
         message: str | None = None,
         http_status: int | None = None,
         drop: bool = False,
+        lose_answer: bool = False,
         delay: float = 0.0,
         times: int = 1,
     ) -> None:
         """Make the next ``times`` requests to ``path`` fail.
 
-        ``result_code`` answers with that KRA code, ``http_status`` with an HTTP
-        error page, ``drop`` closes the connection without answering, and
-        ``delay`` waits before answering (longer than the client's read
-        timeout simulates a lost answer).
+        None of these record anything, except ``lose_answer``:
+
+        * ``result_code`` answers with that KRA code (a rejection)
+        * ``http_status`` answers with an HTTP error page
+        * ``drop`` closes the connection without answering
+        * ``lose_answer`` processes the request, then closes the connection
+          without answering: KRA has it, the caller doesn't know
+        * ``delay`` waits before answering (longer than the client's read timeout)
         """
-        fault = _Fault(result_code, message, http_status, drop, delay)
+        fault = _Fault(result_code, message, http_status, drop, lose_answer, delay)
         with self._lock:
             self._faults.setdefault(path, []).extend([fault] * times)
 
@@ -357,9 +363,13 @@ class FakeKra:
                     body = json.loads(raw or b"{}")
                 except ValueError:
                     body = None
-                status, answer = fake._dispatch(self.path, self.headers, body)
                 if fault and fault.result_code:
-                    answer = _envelope(fault.result_code, fault.message)
+                    status, answer = 200, _envelope(fault.result_code, fault.message)
+                else:
+                    status, answer = fake._dispatch(self.path, self.headers, body)
+                if fault and fault.lose_answer:
+                    self.close_connection = True
+                    return
                 self._send(status, json.dumps(answer).encode(), "application/json")
 
             def _send(self, status: int, payload: bytes, content_type: str) -> None:
