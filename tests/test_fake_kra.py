@@ -230,3 +230,20 @@ def test_state_survives_a_restart(tmp_path: Path) -> None:
 def test_lenient_mode_skips_the_extra_checks() -> None:
     with FakeKra(strict=False) as kra, connect(kra) as client:
         assert client.save_sale(make_sale(invoice_no=5)).signature  # unregistered, out of order
+
+
+def test_reset_forgets_sales_but_keeps_devices(kra: FakeKra, client: OscuClient) -> None:
+    client.save_item(ITEM)
+    client.save_sale(make_sale())
+    kra.fail_next("/saveItem", http_status=503)
+    kra.reset()
+
+    assert kra.sales(TIN, "00") == {}
+    assert kra.items(TIN, "00") == {}
+    assert kra.requests == []
+    client.save_item(ITEM)  # no leftover fault, and the device key still works
+    assert client.save_sale(make_sale()).receipt_no == 1  # numbering starts again
+
+    kra.reset(keep_devices=False)
+    with pytest.raises(DeviceError, match="901"):
+        client.get_branches()

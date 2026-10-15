@@ -16,3 +16,4 @@ live sandbox is not verified yet.
 - `SaleOutbox`: gap-free invoice numbering and in-order delivery through outages.
 - `etims.testing.FakeKra`: a local stand-in for the OSCU API with fault injection,
   usable in tests or as a server (`python -m etims.testing`).
+  `reset()` forgets items and sales between tests.

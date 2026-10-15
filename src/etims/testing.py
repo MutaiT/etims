@@ -293,6 +293,25 @@ class FakeKra:
         with self._lock:
             self._faults.setdefault(path, []).extend([fault] * times)
 
+    def reset(self, *, keep_devices: bool = True) -> None:
+        """Forget items, sales and pending faults, e.g. between tests.
+
+        With ``keep_devices`` (the default) initialized devices and their
+        communication keys survive, so clients keep working.
+        """
+        with self._lock:
+            if keep_devices:
+                for branch in self._branches.values():
+                    branch.items.clear()
+                    branch.sales.clear()
+                    branch.receipts_by_type.clear()
+                    branch.total_receipts = 0
+            else:
+                self._branches.clear()
+            self._faults.clear()
+            self.requests.clear()
+            self._save_state()
+
     def sales(self, tin: str, bhf_id: str) -> dict[int, dict[str, Any]]:
         """Signed sales for a branch, by invoice number."""
         branch = self._branches.get(f"{tin}/{bhf_id}")
