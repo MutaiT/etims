@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import time
 from collections.abc import Iterator
 from decimal import Decimal
 from pathlib import Path
